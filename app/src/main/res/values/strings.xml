@@ -1,0 +1,129 @@
+<resources>
+    <string name="app_name">Weather-Forecast-App</string>
+
+    <!-- キーワード -->
+    <string name="retry">リトライ</string>
+    <string name="currentlocation">currentlocation</string>
+    <string name="currentlocation_jp">現在位置</string>
+    <string name="weather_clear">晴れ</string>
+    <string name="weather_clouds">曇り</string>
+    <string name="weather_rain">雨</string>
+    <string name="weather_drizzle">小雨</string>
+    <string name="weather_thunderstorm">雷雨</string>
+    <string name="weather_snow">雪</string>
+    <string name="other">その他</string>
+    <string name="unknown_jp">不明</string>
+    <string name="unknown">unknown</string>
+    <string name="is_weather">の天気</string>
+
+    <!-- メッセージ -->
+    <string name="networkerror">通信に失敗しました。</string>
+
+    <!-- デフォルトの都道府県 -->
+    <string-array name="defaultlocation">
+        <item>Hokkaido</item>
+        <item>Tokyo</item>
+        <item>Hyogo</item>
+        <item>Oita</item>
+        <item>currentlocation</item>
+        <!-- 他のアイテムを追加 -->
+    </string-array>
+
+    <!-- 都道府県 -->
+    <string name="hokkaido">北海道</string>
+    <string name="aomori">青森</string>
+    <string name="iwate">岩手</string>
+    <string name="miyagi">宮城</string>
+    <string name="akita">秋田</string>
+    <string name="yamagata">山形</string>
+    <string name="fukushima">福島</string>
+    <string name="ibaraki">茨城</string>
+    <string name="tochigi">栃木</string>
+    <string name="gunma">群馬</string>
+    <string name="saitama">埼玉</string>
+    <string name="chiba">千葉</string>
+    <string name="tokyo">東京</string>
+    <string name="kanagawa">神奈川</string>
+    <string name="niigata">新潟</string>
+    <string name="toyama">富山</string>
+    <string name="ishikawa">石川</string>
+    <string name="fukui">福井</string>
+    <string name="yamanashi">山梨</string>
+    <string name="nagano">長野</string>
+    <string name="gifu">岐阜</string>
+    <string name="shizuoka">静岡</string>
+    <string name="aichi">愛知</string>
+    <string name="mie">三重</string>
+    <string name="shiga">滋賀</string>
+    <string name="kyoto">京都</string>
+    <string name="osaka">大阪</string>
+    <string name="hyogo">兵庫</string>
+    <string name="nara">奈良</string>
+    <string name="wakayama">和歌山</string>
+    <string name="tottori">鳥取</string>
+    <string name="shimane">島根</string>
+    <string name="okayama">岡山</string>
+    <string name="hiroshima">広島</string>
+    <string name="yamaguchi">山口</string>
+    <string name="tokushima">徳島</string>
+    <string name="kagawa">香川</string>
+    <string name="ehime">愛媛</string>
+    <string name="kochi">高知</string>
+    <string name="fukuoka">福岡</string>
+    <string name="saga">佐賀</string>
+    <string name="nagasaki">長崎</string>
+    <string name="kumamoto">熊本</string>
+    <string name="oita">大分</string>
+    <string name="miyazaki">宮崎</string>
+    <string name="kagoshima">鹿児島</string>
+    <string name="okinawa">沖縄</string>
+
+    <!-- ローマ字の都道府県名 -->
+    <string name="hokkaido_romaji">Hokkaido</string>
+    <string name="aomori_romaji">Aomori</string>
+    <string name="iwate_romaji">Iwate</string>
+    <string name="miyagi_romaji">Miyagi</string>
+    <string name="akita_romaji">Akita</string>
+    <string name="yamagata_romaji">Yamagata</string>
+    <string name="fukushima_romaji">Fukushima</string>
+    <string name="ibaraki_romaji">Ibaraki</string>
+    <string name="tochigi_romaji">Tochigi</string>
+    <string name="gunma_romaji">Gunma</string>
+    <string name="saitama_romaji">Saitama</string>
+    <string name="chiba_romaji">Chiba</string>
+    <string name="tokyo_romaji">Tokyo</string>
+    <string name="kanagawa_romaji">Kanagawa</string>
+    <string name="niigata_romaji">Niigata</string>
+    <string name="toyama_romaji">Toyama</string>
+    <string name="ishikawa_romaji">Ishikawa</string>
+    <string name="fukui_romaji">Fukui</string>
+    <string name="yamanashi_romaji">Yamanashi</string>
+    <string name="nagano_romaji">Nagano</string>
+    <string name="gifu_romaji">Gifu</string>
+    <string name="shizuoka_romaji">Shizuoka</string>
+    <string name="aichi_romaji">Aichi</string>
+    <string name="mie_romaji">Mie</string>
+    <string name="shiga_romaji">Shiga</string>
+    <string name="kyoto_romaji">Kyoto</string>
+    <string name="osaka_romaji">Osaka</string>
+    <string name="hyogo_romaji">Hyogo</string>
+    <string name="nara_romaji">Nara</string>
+    <string name="wakayama_romaji">Wakayama</string>
+    <string name="tottori_romaji">Tottori</string>
+    <string name="shimane_romaji">Shimane</string>
+    <string name="okayama_romaji">Okayama</string>
+    <string name="hiroshima_romaji">Hiroshima</string>
+    <string name="yamaguchi_romaji">Yamaguchi</string>
+    <string name="tokushima_romaji">Tokushima</string>
+    <string name="kagawa_romaji">Kagawa</string>
+    <string name="ehime_romaji">Ehime</string>
+    <string name="kochi_romaji">Kochi</string>
+    <string name="fukuoka_romaji">Fukuoka</string>
+    <string name="saga_romaji">Saga</string>
+    <string name="nagasaki_romaji">Nagasaki</string>
+    <string name="kumamoto_romaji">Kumamoto</string>
+    <string name="oita_romaji">Oita</string>
+    <string name="miyazaki_romaji">Miyazaki</string>
+    <string name="kagoshima_romaji">Kagoshima</string>
+    <string name="okinawa_romaji">Okinawa</string>
+</resources>
