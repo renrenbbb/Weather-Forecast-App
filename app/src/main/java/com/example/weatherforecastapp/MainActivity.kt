@@ -62,7 +62,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             WeatherForecastTheme {
+                // 天気情報を保持するための状態
                 var weatherInfo by remember { mutableStateOf<WeatherInfo?>(null) }
+                // 選択された都市名を取得
                 val selectedCity = intent.getStringExtra("selectedCity") ?: ""
 
                 LaunchedEffect(selectedCity) {
@@ -92,7 +94,6 @@ class MainActivity : ComponentActivity() {
 
                     GlobalScope.launch {
                         try {
-
                             // 非同期処理を実行
                             val result = viewModel.getWeatherInfo(selectedCity)
 
@@ -116,8 +117,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         } catch (e: Exception) {
-                            // エラーハンドリング
-                            println("エラー: ${e.message}")
+                            println(e.message)
                         }
 
                         // 非同期処理完了後に左サイドバーを閉じる
@@ -131,6 +131,12 @@ class MainActivity : ComponentActivity() {
 //endregion
 
 //region Compose
+/**
+ * 天気画面のCompose
+ * @param weatherInfo 天気情報クラス
+ * @param selectedCity 選択された都市名
+ * @param onItemClicked 都市がクリックされたときに呼び出されるコールバック
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainDisplay(
@@ -231,7 +237,7 @@ fun MainDisplay(
                             fontSize = 35.sp
                         )
                         Text(
-                            text = Common.getDayOfWeek(weatherInfo.weatherDataList[0].date),
+                            text = Common.getDayOfWeekDisplayName(weatherInfo.weatherDataList[0].date),
                             color = Common.getWeekColor(weatherInfo.weatherDataList[0].date),
                             fontSize = 35.sp
                         )
@@ -245,7 +251,7 @@ fun MainDisplay(
                     {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(Common.getweatherIconUrl(weatherInfo.weatherDataList[0].weatherIcon))
+                                .data(Common.getWeatherIconUrl(weatherInfo.weatherDataList[0].weatherIcon))
                                 .crossfade(true)
                                 .build(),
                             contentScale = ContentScale.Crop,
@@ -320,7 +326,7 @@ fun MainDisplay(
                                         textAlign = TextAlign.Center
                                     )
                                     Text(
-                                        text = Common.getDayOfWeek(
+                                        text = Common.getDayOfWeekDisplayName(
                                             weatherInfo.weatherDataList[i].date,
                                             TextStyle.SHORT
                                         ),
@@ -339,7 +345,7 @@ fun MainDisplay(
                                     AsyncImage(
                                         model = ImageRequest.Builder(LocalContext.current)
                                             .data(
-                                                Common.getweatherIconUrl(
+                                                Common.getWeatherIconUrl(
                                                     weatherInfo.weatherDataList[i].weatherIcon,
                                                     false
                                                 )
