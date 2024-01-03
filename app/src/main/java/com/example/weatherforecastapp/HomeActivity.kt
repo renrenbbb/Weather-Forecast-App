@@ -35,10 +35,13 @@ import kotlinx.coroutines.withContext
 
 //region ホーム画面のアクティビティ
 class HomeActivity : ComponentActivity() {
+    //region 定数・変数
+    // ビューモデル
     private val viewModel: HomeViewModel by viewModels { HomeViewModelFactory(application) }
 
     // 現在位置用
     private var currentCity: String? = null
+    //endregion
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +75,7 @@ class HomeActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     HomeDisplay(cities) { city ->
+                        // クリックしたときの処理
                         onItemClicked(city)
                     }
                 }
@@ -79,7 +83,7 @@ class HomeActivity : ComponentActivity() {
         }
     }
 
-    // 都道府県が選択されたときに呼び出される関数
+    // 都道府県が選択されたときの処理
     private fun onItemClicked(city: String) {
         // MainActivityを開くIntentを作成
         val intent = Intent(this, MainActivity::class.java)
@@ -93,6 +97,9 @@ class HomeActivity : ComponentActivity() {
     }
 }
 
+/**
+ * HomeViewModelのファクトリクラス
+ */
 class HomeViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
@@ -105,6 +112,11 @@ class HomeViewModelFactory(private val application: Application) : ViewModelProv
 //endregion
 
 //region Compose
+/**
+ * ホーム画面のCompose
+ * @param cities 表示する都道府県のリスト
+ * @param onItemClicked 都道府県がクリックされたときに呼び出されるコールバック
+ */
 @Composable
 fun HomeDisplay(cities: List<String>?, onItemClicked: (String) -> Unit) {
 
@@ -124,8 +136,15 @@ fun HomeDisplay(cities: List<String>?, onItemClicked: (String) -> Unit) {
     }
 }
 
+/**
+ * 天気アイテムのCompose
+ * @param city 表示する都道府県名
+ * @param onItemClicked 都道府県がクリックされたときに呼び出されるコールバック
+ * @param isOdd アイテムが奇数番目かのフラグ
+ */
 @Composable
 fun WeatherItem(city: String, onItemClicked: (String) -> Unit, isOdd: Boolean = false) {
+    // 奇数・偶数番目で色変更
     val backgroundColor = if (isOdd) Color.Black else Color.White
     val textColor = if (isOdd) Color.White else Color.Black
 
@@ -138,7 +157,7 @@ fun WeatherItem(city: String, onItemClicked: (String) -> Unit, isOdd: Boolean = 
     ) {
         // 都道府県
         Text(
-            //縦書きにする
+            // 縦書きにする
             text = buildAnnotatedString {
                 (cityMap[city]?.let { stringResource(it) } ?: "").forEachIndexed { index, char ->
                     append("$char\n")
