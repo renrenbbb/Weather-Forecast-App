@@ -533,17 +533,24 @@ class Common {
 
                     // 権限が許可されている場合の処理をコルーチンで実行
                     suspendCancellableCoroutine { continuation ->
-                        // 権限チェック済み
-                        fusedLocationClient.lastLocation
-                            .addOnSuccessListener { location: Location? ->
-                                location?.let {
-                                    // 現在の位置情報を取得できた場合
-                                    continuation.resume(Coordinate(it.latitude, it.longitude))
-                                } ?: run {
-                                    // 現在の位置情報を取得できなかった場合
-                                    continuation.resume(Coordinate(LATITUDE_TOKYO, LONGITUDE_TOKYO))
+                        // 権限チェック
+                        if (Common.checkLocationPermission(context)) {
+                            fusedLocationClient.lastLocation
+                                .addOnSuccessListener { location: Location? ->
+                                    location?.let {
+                                        // 現在の位置情報を取得できた場合
+                                        continuation.resume(Coordinate(it.latitude, it.longitude))
+                                    } ?: run {
+                                        // 現在の位置情報を取得できなかった場合
+                                        continuation.resume(
+                                            Coordinate(
+                                                LATITUDE_TOKYO,
+                                                LONGITUDE_TOKYO
+                                            )
+                                        )
+                                    }
                                 }
-                            }
+                        }
                     }
                 } catch (e: Exception) {
                     println(e.message)

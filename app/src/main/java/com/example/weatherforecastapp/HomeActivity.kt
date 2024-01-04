@@ -38,7 +38,6 @@ class HomeActivity : ComponentActivity() {
     //region 定数・変数
     // ビューモデル
     private val viewModel: HomeViewModel by viewModels { HomeViewModelFactory(application) }
-
     // 現在位置用
     private var currentCity: String? = null
     //endregion

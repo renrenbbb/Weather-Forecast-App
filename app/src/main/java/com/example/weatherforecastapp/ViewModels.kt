@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -73,6 +75,15 @@ class MainViewModel() : ViewModel() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     val drawerState: LiveData<DrawerValue> = _drawerState
+
+    // isVisibleを変更する関数
+    // isVisibleをMutableStateで管理
+    var isVisible by mutableStateOf(false)
+        private set
+
+    fun setVisibility(value: Boolean) {
+        isVisible = value
+    }
 
     /**
      * 初期化ブロック
