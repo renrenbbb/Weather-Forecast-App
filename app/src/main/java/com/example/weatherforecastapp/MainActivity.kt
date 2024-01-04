@@ -24,6 +24,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.weatherforecast.ui.theme.WeatherForecastTheme
@@ -52,21 +54,35 @@ import kotlinx.coroutines.withContext
 import java.time.format.TextStyle
 
 //region 天気画面のアクティビティ
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), DateChangeListener {
 
     //region 定数・変数
+    // ビューモデル
     private val viewModel: MainViewModel by viewModels()
+
+    // 現在位置
+    private lateinit var currentCity: String
+
+    // レシーバー
+    private val receiver = CustomReceiver(this)
+
+    private var weatherInfo: WeatherInfo? = null
     //endregion
 
+    /**
+     * onCreateイベント
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 現在位置をセット
+        currentCity = intent.getStringExtra("currentCity") ?: ""
 
         setContent {
             WeatherForecastTheme {
-                // 天気情報を保持するための状態
-                var weatherInfo by remember { mutableStateOf<WeatherInfo?>(null) }
                 // 選択された都市名を取得
                 val selectedCity = intent.getStringExtra("selectedCity") ?: ""
+//                // 天気情報を保持するための状態
+//                var weatherInfo by remember { mutableStateOf<WeatherInfo?>(null) }
 
                 LaunchedEffect(selectedCity) {
                     // 非同期で天気情報を取得
@@ -85,12 +101,37 @@ class MainActivity : ComponentActivity() {
 
                 // MainDisplayに天気情報を渡す
                 MainDisplay(
-                    weatherInfo = viewModel.weatherInfo.value, selectedCity = selectedCity
+                    viewModel = viewModel,
+                    weatherInfo = viewModel.weatherInfo.value,
+                    selectedCity = selectedCity
                 ) { city ->
                     // クリック時の処理
                     var selectedCity = city
                     if (selectedCity == getString(R.string.currentlocation)) {
-                        selectedCity = intent.getStringExtra("currentCity") ?: ""
+                        selectedCity = currentCity
+
+                        if (selectedCity == null || selectedCity.isEmpty()) {
+                            weatherInfo = null
+
+                            if (Common.checkLocationPermission(this)) {
+                                lifecycleScope.launch {
+                                    //現在の位置情報を取得する
+                                    val locationInfo = withContext(Dispatchers.IO) {
+                                        Common.requestLocation(this@MainActivity)
+                                    }
+                                    // Google Maps APIを利用して座標から都道府県名を取得
+                                    currentCity = withContext(Dispatchers.IO) {
+                                        Common.getCityFromLocation(
+                                            locationInfo.latitude,
+                                            locationInfo.longitude,
+                                            this@MainActivity
+                                        )
+                                    }
+                                }
+                            }
+
+                            viewModel.setVisibility(true)
+                        }
                     }
 
                     GlobalScope.launch {
@@ -120,11 +161,55 @@ class MainActivity : ComponentActivity() {
                         } catch (e: Exception) {
                             println(e.message)
                         }
-
-                        // 非同期処理完了後に左サイドバーを閉じる
-                        // viewModel.closeDrawer()
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * onDestroyイベント
+     */
+    override fun onDestroy() {
+        try {
+            super.onDestroy()
+            // レシーバーを解除
+            unregisterReceiver(receiver)
+        } catch (e: Exception) {
+            // オフライン時に発生
+            println(e.message)
+        }
+    }
+
+    /**
+     * 日付の変更を検知
+     */
+    override fun onDateChanged() {
+        // 天気情報を再取得する
+        GlobalScope.launch {
+            try {
+                val result = viewModel.getWeatherInfo("Oita")
+
+                withContext(Dispatchers.Main) {
+                    // 結果をUIに反映
+                    weatherInfo = result
+
+                    // 天気情報が取得できた場合はアプリへ保存
+                    if (weatherInfo != null) {
+                        val sharedPreferences =
+                            getSharedPreferences(
+                                WEATHER_FORECAST_APP_PREF,
+                                Context.MODE_PRIVATE
+                            )
+                        // 5日間の天気予報情報をアプリへ保存するためにJSON文字列を作成
+                        val json = Common.createJsonToSaveWeather(weatherInfo!!)
+                        val editor = sharedPreferences.edit()
+                        editor.putString(currentCity, json)
+                        editor.apply()
+                    }
+                }
+            } catch (e: Exception) {
+                println(e.message)
             }
         }
     }
@@ -141,6 +226,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainDisplay(
+    viewModel: MainViewModel,
     weatherInfo: WeatherInfo?,
     selectedCity: String,
     onItemClicked: (String) -> Unit
@@ -154,6 +240,19 @@ fun MainDisplay(
     // Drawerの開閉状態を変更
     val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
     val closeDrawer: () -> Unit = { scope.launch { drawerState.close() } }
+
+    // isVisibleの値を外部から変更する関数
+    //val setVisibility: (Boolean) -> Unit = { value -> isVisible = value }
+    // isVisibleを外部から変更する関数
+//    val setVisibility: (Boolean) -> Unit = { value ->
+//        viewModel.setVisibility(value)
+//    }
+
+    // isVisibleが変更されるたびにViewModelのsetVisibilityを呼び出す
+    DisposableEffect(isVisible) {
+        viewModel.setVisibility(isVisible)
+        onDispose { /* リソースの解放など */ }
+    }
 
     // Drawerを表示するためのコンポーネント
     ModalNavigationDrawer(
@@ -401,7 +500,7 @@ fun MainDisplay(
                     .fillMaxSize()
             )
             {
-                if (weatherInfo == null) {
+                if (isVisible) {
                     Text(
                         text = stringResource(id = R.string.networkerror),
                         fontSize = 15.sp,
