@@ -104,24 +104,18 @@ class MainViewModel() : ViewModel() {
         }
     }
 
-    // Drawerを閉じる関数
-    @OptIn(ExperimentalMaterial3Api::class)
-    fun closeDrawer() {
-        _drawerState.value = DrawerValue.Closed
+    private fun loadData() {
+        viewModelScope.launch {
+            try {
+            } catch (e: Exception) {
+                // エラーハンドリング
+            }
+        }
     }
 
-//    private fun loadData() {
-//        viewModelScope.launch {
-//            try {
-//            } catch (e: Exception) {
-//                // エラーハンドリング
-//            }
-//        }
-//    }
-//
-//    // この関数を呼ぶことでAPI再読み込みが可能
-//    fun reloadData() {
-//        loadData()
-//    }
+    // この関数を呼ぶことでAPI再読み込みが可能
+    fun reloadData() {
+        loadData()
+    }
 }
 //endregion

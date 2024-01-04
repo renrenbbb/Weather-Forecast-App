@@ -28,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -148,6 +149,11 @@ fun MainDisplay(
     // Drawerの状態を管理するためのState
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     var isVisible by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    // Drawerの開閉状態を変更
+    val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
+    val closeDrawer: () -> Unit = { scope.launch { drawerState.close() } }
 
     // Drawerを表示するためのコンポーネント
     ModalNavigationDrawer(
@@ -179,6 +185,8 @@ fun MainDisplay(
                             .clickable {
                                 // タップした地点の天気情報を取得
                                 onItemClicked(defaultLocation.getOrNull(i) ?: "")
+                                // ドロワーを閉じる
+                                closeDrawer()
                             }
                             .wrapContentSize(Alignment.CenterStart)
                     )
