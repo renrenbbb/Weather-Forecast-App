@@ -9,8 +9,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -31,39 +29,27 @@ import java.util.Date
 import java.util.Locale
 import java.util.Properties
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * 共通の変数・関数群
  */
 
 //region 定数・変数
-val LOCATION_PERMISSION_REQUEST_CODE = 1001
+// 権限のリクエストコード
+const val LOCATION_PERMISSION_REQUEST_CODE = 1001
 
-val WEATHER_FORECAST_APP_PREF = "WeatherForecastAppPref"
+// データファイル名
+const val WEATHER_FORECAST_APP_PREF = "WeatherForecastAppPref"
 
+// Open Weather APIキー
 val OPENWEATHER_API_KEY = Config.getOpenWeatherApiKey()
+
+// Google Maps APIキー
 val GOOGLEMAPS_API_KEY = Config.getGoogleMapsApiKey()
 
 //緯度・経度
-val LATITUDE_HOKKAIDO = 43.0643
-val LONGITUDE_HOKKAIDO = 141.3468
-val LATITUDE_TOKYO = 35.6895
-val LONGITUDE_TOKYO = 139.6917
-val LATITUDE_HYOGO = 34.6912
-val LONGITUDE_HYOGO = 135.1830
-val LATITUDE_OITA = 33.2381
-val LONGITUDE_OITA = 131.6126
-
-/**
- * デフォルト都道府県座標マップ
- */
-val coordinateMap = mapOf(
-    "Hokkaido" to Coordinate(LATITUDE_HOKKAIDO, LONGITUDE_HOKKAIDO),
-    "Tokyo" to Coordinate(LATITUDE_TOKYO, LONGITUDE_TOKYO),
-    "Hyogo" to Coordinate(LATITUDE_HYOGO, LONGITUDE_HYOGO),
-    "Oita" to Coordinate(LATITUDE_OITA, LONGITUDE_OITA)
-)
+const val LATITUDE_TOKYO = 35.6895
+const val LONGITUDE_TOKYO = 139.6917
 
 /**
  * 都道府県マップ
@@ -188,16 +174,15 @@ class Common {
          * @return 生成されたJSON文字列
          */
         fun createJsonToSaveWeather(weatherInfo: WeatherInfo): String {
-            var json = ""
+            val json: String
 
-            if (weatherInfo != null) {
-                val weatherData0 = weatherInfo.weatherDataList[0]
-                val weatherData1 = weatherInfo.weatherDataList[1]
-                val weatherData2 = weatherInfo.weatherDataList[2]
-                val weatherData3 = weatherInfo.weatherDataList[3]
-                val weatherData4 = weatherInfo.weatherDataList[4]
+            val weatherData0 = weatherInfo.weatherDataList[0]
+            val weatherData1 = weatherInfo.weatherDataList[1]
+            val weatherData2 = weatherInfo.weatherDataList[2]
+            val weatherData3 = weatherInfo.weatherDataList[3]
+            val weatherData4 = weatherInfo.weatherDataList[4]
 
-                json = """{
+            json = """{
                     "city": "${weatherInfo.city}",
                     "date0": "${convertDateToString(weatherData0.date, "yyyy/MM/dd")}",
                     "weather0": "${weatherData0.weather}",
@@ -220,7 +205,6 @@ class Common {
                     "weathericon4": "${weatherData4.weatherIcon}",
                     "temperature4": "${weatherData4.temperature}"
                    }"""
-            }
 
             return json
         }
@@ -311,33 +295,35 @@ class Common {
          * @param city 天気を取得する都市
          * @return APIから取得した天気データクラス
          */
-        suspend fun get5dayWeather(city: String): WeatherInfo? {
+        suspend fun get5dayWeather(city: String, savedJson: String): WeatherInfo? {
             // OpenWeatherAPIのURLをセット
             val apiUrl =
                 "http://api.openweathermap.org/data/2.5/forecast?q=$city&APPID=$OPENWEATHER_API_KEY&units=metric&lang=ja"
 
-            //非同期で天気を取得
-            return suspendCoroutine { continuation ->
-                GlobalScope.launch(Dispatchers.IO) {
-                    try {
-                        // 天気取得API処理の実行
-                        val response = exeGet5dayWeather(apiUrl)
+            try {
+                // 天気取得API処理の実行
+                val response = withContext(Dispatchers.IO) { exeGet5dayWeather(apiUrl) }
 
-                        if (response != null) {
-                            // JSONデータから天気データを抽出
-                            val weatherData = extractWeatherDataFromJSON(response)
+                var weatherInfo: WeatherInfo? = null
 
-                            // 天気情報クラスを作成して返す
-                            val weatherInfo = WeatherInfo(city, weatherData)
-                            continuation.resume(weatherInfo)
-                        }
-                    } catch (e: Exception) {
-                        println(e.message)
-                        // 例外が発生した場合はnull
-                        continuation.resume(null)
-                    }
+                if (response != null) {
+                    // JSONデータから天気データを抽出
+                    val weatherData = extractWeatherDataFromJSON(response)
+
+                    // 天気情報クラスを作成して返す
+                    weatherInfo = WeatherInfo(city, weatherData)
                 }
+                // 天気情報を取得できなかった場合はアプリへ保存した5日間の天気予報を取得
+                if (weatherInfo == null) {
+                    weatherInfo = getSaveWeather(savedJson)
+                }
+
+                return weatherInfo
+            } catch (e: Exception) {
+                println(e.message)
             }
+
+            return null
         }
 
         /**
@@ -356,7 +342,7 @@ class Common {
                 // APIへのリクエストを実行
                 val responseCode = connection.responseCode
 
-                if (responseCode == HttpURLConnection.HTTP_OK) {
+                return if (responseCode == HttpURLConnection.HTTP_OK) {
                     val reader = BufferedReader(InputStreamReader(connection.inputStream))
                     var line: String?
                     val response = StringBuilder()
@@ -366,10 +352,10 @@ class Common {
                     }
                     reader.close()
 
-                    return response.toString()
+                    response.toString()
                 } else {
                     // レスポンスコードが異常な場合はnullを返す
-                    return null
+                    null
                 }
             } catch (e: Exception) {
                 println(e.message)
@@ -486,15 +472,28 @@ class Common {
             }
 
             // 当日の場合は大きいイメージを使用
-            if (isToday) {
-                return "https://openweathermap.org/img/wn/$editIcon@4x.png"
+            return if (isToday) {
+                "https://openweathermap.org/img/wn/$editIcon@4x.png"
             } else {
-                return "https://openweathermap.org/img/wn/$editIcon.png"
+                "https://openweathermap.org/img/wn/$editIcon.png"
             }
         }
         //endregion
 
         //region 現在位置取得処理
+
+        /**
+         * 位置情報の権限を許可する
+         * @param activity 呼び出し元のActivityコンテキスト
+         */
+        fun checkAndRequestLocationPermission(activity: Activity) {
+            // 位置情報の権限が許可されているか確認
+            if (!checkLocationPermission(activity)) {
+                // 許可されていない場合は権限のリクエストを行う
+                requestLocationPermission(activity)
+            }
+        }
+
         /**
          * 位置情報の権限を確認する
          * @param context 呼び出し元のActivityコンテキスト
@@ -511,7 +510,7 @@ class Common {
          * 位置情報の権限をリクエストする
          * @param context 呼び出し元のActivityコンテキスト
          */
-        fun requestLocationPermission(context: Activity) {
+        private fun requestLocationPermission(context: Activity) {
             ActivityCompat.requestPermissions(
                 context,
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
@@ -528,13 +527,13 @@ class Common {
             withContext(Dispatchers.Default) {
                 try {
                     // FusedLocationProviderClientの初期化
-                    var fusedLocationClient =
+                    val fusedLocationClient =
                         LocationServices.getFusedLocationProviderClient(context)
 
                     // 権限が許可されている場合の処理をコルーチンで実行
                     suspendCancellableCoroutine { continuation ->
                         // 権限チェック
-                        if (Common.checkLocationPermission(context)) {
+                        if (checkLocationPermission(context)) {
                             fusedLocationClient.lastLocation
                                 .addOnSuccessListener { location: Location? ->
                                     location?.let {
@@ -560,11 +559,11 @@ class Common {
             }
 
         /**
-         * Google Maps APIを利用して座標から都道府県名を取得
+         * Google Maps APIを利用して座標から都市名を取得
          * @param latitude 緯度
          * @param longitude 経度
          * @param context 呼び出し元のActivityコンテキスト
-         * @return 座標から取得した都道府県名、取得できない場合は「不明」
+         * @return 座標から取得した都市名、取得できない場合は「不明」
          */
         fun getCityFromLocation(latitude: Double, longitude: Double, context: Activity): String {
             // GoogleMapsGeocodingAPIのURLをセット
@@ -584,9 +583,9 @@ class Common {
                         for (i in 0 until addressComponents.length()) {
                             val component = addressComponents.getJSONObject(i)
                             val types = component.getJSONArray("types")
-                            // 都道府県情報が含まれる場合
+                            // 都市情報が含まれる場合
                             if (types.toString().contains("administrative_area_level_1")) {
-                                // 都道府県名を返す
+                                // 都市名を返す
                                 return convertToShiftJIS(component.getString("long_name"))
                             }
                         }
@@ -658,7 +657,7 @@ object Config {
     // 初期化ブロック
     init {
         // config.propertiesファイルをリソースから読み込む
-        val inputStream = Config::class.java.classLoader.getResourceAsStream("config.properties")
+        val inputStream = Config::class.java.classLoader?.getResourceAsStream("config.properties")
         properties.load(inputStream)
     }
 

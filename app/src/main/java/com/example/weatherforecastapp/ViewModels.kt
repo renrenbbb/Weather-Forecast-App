@@ -1,17 +1,14 @@
 package com.example.weatherforecastapp
 
 import android.app.Application
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -25,35 +22,34 @@ import kotlinx.coroutines.withContext
  * @param context アプリケーションのコンテキスト
  */
 class HomeViewModel(private val context: Application) : ViewModel() {
-    // LiveDataを使用して都市リストを公開
-    private val _cities = MutableLiveData<List<String>>()
-    val cities: LiveData<List<String>>
-        get() = _cities
+    // 都市リスト
+    private val _cities = MutableStateFlow<List<String>>(emptyList())
+    val cities: StateFlow<List<String>> = _cities
 
     /**
      * 初期化ブロック
      */
     init {
-        // ロード時にAPI呼び出しを行う
+        // データをロード
         loadData()
     }
 
     /**
      * 都市データを非同期で読み込む
      */
-    private fun loadData() {
+    fun loadData() {
         viewModelScope.launch {
             try {
-                val result = listOf(
+                // デフォルトの都市をセット
+                _cities.value = listOf(
                     context.getString(R.string.hokkaido_romaji),
                     context.getString(R.string.tokyo_romaji),
                     context.getString(R.string.hyogo_romaji),
                     context.getString(R.string.oita_romaji)
                 )
-
-                _cities.postValue(result)
             } catch (e: Exception) {
                 // エラーハンドリング
+                println(e.message)
             }
         }
     }
@@ -64,69 +60,81 @@ class HomeViewModel(private val context: Application) : ViewModel() {
 /**
  * 天気画面のビューモデルクラス
  */
-class MainViewModel() : ViewModel() {
+class MainViewModel(private val activity: MainActivity) : ViewModel() {
     // 天気情報を保持するためのState
-    private val _weatherInfo = mutableStateOf<WeatherInfo?>(null)
-    val weatherInfo: State<WeatherInfo?> = _weatherInfo
+    private val _weatherInfo = MutableStateFlow<WeatherInfo?>(null)
+    val weatherInfo: StateFlow<WeatherInfo?> = _weatherInfo
 
-    // Drawerの状態を管理するLiveData
-    @OptIn(ExperimentalMaterial3Api::class)
-    private val _drawerState = MutableLiveData<DrawerValue>()
+    // 現在の都市
+    private var currentCity: String = ""
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    val drawerState: LiveData<DrawerValue> = _drawerState
+//    @OptIn(ExperimentalMaterial3Api::class)
+//    private val _stableDrawerState = MutableStateFlow(DrawerValue.Closed)
+//
+//    @OptIn(ExperimentalMaterial3Api::class)
+//    val stableDrawerState: MutableStateFlow<DrawerValue> = _stableDrawerState
 
-    // isVisibleを変更する関数
     // isVisibleをMutableStateで管理
-    var isVisible by mutableStateOf(false)
-        private set
+    private var isVisible by mutableStateOf(false)
 
+    // isVisibleの変更関数
     fun setVisibility(value: Boolean) {
         isVisible = value
     }
 
     /**
-     * 初期化ブロック
-     */
-    init {
-        // ロード時にAPI呼び出しを行う
-        //loadData()
-    }
-
-    /**
      * 非同期で天気情報を取得
      * @param city 対象の都市
-     * @return 取得した天気情報クラス
      */
-    suspend fun getWeatherInfo(city: String): WeatherInfo? {
-        try {
-
-        } catch (e: Exception) {
-            println(e.message)
-        }
-        return withContext(Dispatchers.IO) {
-            // 非同期処理の実行
-            val newWeatherInfo =
-                Common.get5dayWeather(city)
-            // 結果をLiveDataにセット
-            _weatherInfo.value = newWeatherInfo
-
-            newWeatherInfo
-        }
-    }
-
-    private fun loadData() {
+    fun getWeatherInfo(city: String = "") {
         viewModelScope.launch {
             try {
+                setVisibility(false)
+
+                var targetCity = if (city.isNotEmpty()) city else currentCity
+                if (targetCity == activity.getString(R.string.currentlocation)) {
+                    if (Common.checkLocationPermission(activity)) {
+                        getCurrentCity()
+                        targetCity = currentCity
+                        //setVisibility(true)
+                    }
+                }
+
+                var result = withContext(Dispatchers.IO) {
+                    Common.get5dayWeather(targetCity, activity.getPrefs(targetCity))
+                }
+
+                _weatherInfo.value = result
+
+                // 天気情報が取得できた場合はアプリへ保存
+                result?.let {
+                    activity.saveWeatherInfoToPrefs(targetCity, it)
+                }
             } catch (e: Exception) {
-                // エラーハンドリング
+                println(e.message)
             }
         }
     }
 
-    // この関数を呼ぶことでAPI再読み込みが可能
-    fun reloadData() {
-        loadData()
+    /**
+     * 位置情報から都市を取得
+     */
+    fun getCurrentCity() {
+
+        viewModelScope.launch {
+            val locationInfo = withContext(Dispatchers.IO) {
+                Common.requestLocation(activity)
+            }
+
+            // 現在位置の都市へセット
+            currentCity = withContext(Dispatchers.IO) {
+                Common.getCityFromLocation(
+                    locationInfo.latitude,
+                    locationInfo.longitude,
+                    activity
+                )
+            }
+        }
     }
 }
 //endregion
