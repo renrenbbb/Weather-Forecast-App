@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,7 +83,6 @@ class MainActivity : ComponentActivity(), DateChangeListener {
                 MainDisplay(
                     viewModel = viewModel,
                     weatherInfo = weatherInfo,
-                    selectedCity = selectedCity,
                     onItemClicked = { city ->
                         handleCityClick(city)
                     }
@@ -174,17 +174,22 @@ class MainViewModelFactory(private val activity: MainActivity) : ViewModelProvid
 fun MainDisplay(
     viewModel: MainViewModel,
     weatherInfo: WeatherInfo?,
-    selectedCity: String,
     onItemClicked: (String) -> Unit
 ) {
+    // コンテキスト
     val context = LocalContext.current
+    // ドロワーの開閉状態
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val isVisible by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    // 対象の都市(リトライ用)
+    var targetCity by remember { mutableStateOf("") }
+
+    // ViewModelからisVisibleを取得し、Composable内で状態を保持
+    val isVisible by remember { viewModel.isVisible }
 
     DisposableEffect(isVisible) {
         viewModel.setVisibility(isVisible)
-        onDispose { /* リソースの解放など */ }
+        onDispose {}
     }
 
     ModalNavigationDrawer(
@@ -210,7 +215,9 @@ fun MainDisplay(
                             .fillMaxSize()
                             .weight(1f)
                             .clickable {
-                                onItemClicked(defaultLocation.getOrNull(i) ?: "")
+                                // リトライ用に保持してく
+                                targetCity = defaultLocation.getOrNull(i) ?: ""
+                                onItemClicked(targetCity)
                                 scope.launch { drawerState.close() }
                             }
                             .padding(start = 20.dp)
@@ -426,7 +433,7 @@ fun MainDisplay(
                     )
 
                     Button(
-                        onClick = { onItemClicked(selectedCity) },
+                        onClick = { onItemClicked(targetCity) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
