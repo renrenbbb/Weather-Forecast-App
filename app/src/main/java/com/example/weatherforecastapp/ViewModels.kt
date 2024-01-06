@@ -1,9 +1,8 @@
 package com.example.weatherforecastapp
 
 import android.app.Application
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -68,18 +67,16 @@ class MainViewModel(private val activity: MainActivity) : ViewModel() {
     // 現在の都市
     private var currentCity: String = ""
 
-//    @OptIn(ExperimentalMaterial3Api::class)
-//    private val _stableDrawerState = MutableStateFlow(DrawerValue.Closed)
-//
-//    @OptIn(ExperimentalMaterial3Api::class)
-//    val stableDrawerState: MutableStateFlow<DrawerValue> = _stableDrawerState
+    //リトライボタンの表示状態を保持するためのState
+    private val _isVisible = mutableStateOf(false)
+    val isVisible: State<Boolean> get() = _isVisible
 
-    // isVisibleをMutableStateで管理
-    private var isVisible by mutableStateOf(false)
-
-    // isVisibleの変更関数
-    fun setVisibility(value: Boolean) {
-        isVisible = value
+    /**
+     * リトライボタンの表示状態を設定
+     * @param isVisible リトライボタンの表示状態
+     */
+    fun setVisibility(isVisible: Boolean) {
+        _isVisible.value = isVisible
     }
 
     /**
@@ -109,6 +106,9 @@ class MainViewModel(private val activity: MainActivity) : ViewModel() {
                 // 天気情報が取得できた場合はアプリへ保存
                 result?.let {
                     activity.saveWeatherInfoToPrefs(targetCity, it)
+                } ?: run {
+                    // 天気情報が取得できなかった場合
+                    setVisibility(true)
                 }
             } catch (e: Exception) {
                 println(e.message)
