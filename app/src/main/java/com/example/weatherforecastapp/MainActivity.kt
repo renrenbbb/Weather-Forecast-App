@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity(), DateChangeListener {
 
     // レシーバー
     private val receiver = CustomReceiver(this)
+    //endregion
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,12 +92,14 @@ class MainActivity : ComponentActivity(), DateChangeListener {
         }
     }
 
+    //region SharedPreferences関連
     /**
      * 5日間の天気予報情報をアプリへ保存
      * @param city 対象の都市
      * @param weatherInfo 天気情報クラス
      */
     fun saveWeatherInfoToPrefs(city: String, weatherInfo: WeatherInfo) {
+        // SharedPreferencesの取得
         val sharedPreferences =
             getSharedPreferences(WEATHER_FORECAST_APP_PREF, Context.MODE_PRIVATE)
         val json = Common.createJsonToSaveWeather(weatherInfo)
@@ -109,20 +112,25 @@ class MainActivity : ComponentActivity(), DateChangeListener {
      * @return データファイルのJSON文字列
      */
     fun getPrefs(selectedCity: String): String {
+        // SharedPreferencesの取得
         val sharedPreferences =
             getSharedPreferences(WEATHER_FORECAST_APP_PREF, Context.MODE_PRIVATE)
-
         return sharedPreferences.getString(selectedCity, "")!!
     }
 
     /**
-     * エラーハンドリング
-     * @param exception 例外エラー
+     * 5日間の天気予報情報をクリア
      */
-    private fun handleException(exception: Exception) {
-        println(exception.message)
+    private fun clearPrefs() {
+        // SharedPreferencesの取得
+        val sharedPreferences =
+            getSharedPreferences(WEATHER_FORECAST_APP_PREF, Context.MODE_PRIVATE)
+        // 内容をクリア
+        sharedPreferences.edit().clear().apply()
     }
+    //endregion
 
+    //region イベント
     /**
      * クリックイベント
      * @param city 対象の都市
@@ -149,11 +157,24 @@ class MainActivity : ComponentActivity(), DateChangeListener {
      * 日付の変更を検知
      */
     override fun onDateChanged() {
+        //5日間の天気予報情報をクリア
+        clearPrefs()
         // 天気情報を再取得する
         viewModel.getWeatherInfo()
     }
-}
+    //endregion
 
+    /**
+     * エラーハンドリング
+     * @param exception 例外エラー
+     */
+    private fun handleException(exception: Exception) {
+        println(exception.message)
+    }
+}
+//endregion
+
+//region ファクトリクラス
 /**
  * HomeViewModelのファクトリクラス
  */

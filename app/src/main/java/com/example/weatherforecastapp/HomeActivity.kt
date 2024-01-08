@@ -66,14 +66,6 @@ class HomeActivity : ComponentActivity() {
     }
 
     /**
-     * 都市項目クリックイベント
-     * @param city 都市
-     */
-    private fun onItemClicked(city: String) {
-        startMainActivity(city)
-    }
-
-    /**
      * 天気画面アクティビティをスタート
      * @param city 都市
      */
@@ -84,8 +76,20 @@ class HomeActivity : ComponentActivity() {
         intent.putExtra("currentCity", currentCity)
         startActivity(intent)
     }
-}
 
+    //region イベント
+    /**
+     * 都市項目クリックイベント
+     * @param city 都市
+     */
+    private fun onItemClicked(city: String) {
+        startMainActivity(city)
+    }
+    //endregion
+}
+//endregion
+
+//region ファクトリクラス
 /**
  * HomeViewModelのファクトリクラス
  */

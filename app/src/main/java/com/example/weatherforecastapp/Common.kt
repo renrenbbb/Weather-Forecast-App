@@ -12,8 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.Charset
@@ -174,38 +172,32 @@ class Common {
          * @return 生成されたJSON文字列
          */
         fun createJsonToSaveWeather(weatherInfo: WeatherInfo): String {
-            val json: String
+            val jsonBuilder = StringBuilder()
+            jsonBuilder.append("{\n")
+            jsonBuilder.append("\"city\": \"${weatherInfo.city}\",\n")
 
-            val weatherData0 = weatherInfo.weatherDataList[0]
-            val weatherData1 = weatherInfo.weatherDataList[1]
-            val weatherData2 = weatherInfo.weatherDataList[2]
-            val weatherData3 = weatherInfo.weatherDataList[3]
-            val weatherData4 = weatherInfo.weatherDataList[4]
+            weatherInfo.weatherDataList.forEachIndexed { index, weatherData ->
+                jsonBuilder.append(
+                    "\"date$index\": \"${
+                        convertDateToString(
+                            weatherData.date,
+                            "yyyy/MM/dd"
+                        )
+                    }\",\n"
+                )
+                jsonBuilder.append("\"weather$index\": \"${weatherData.weather}\",\n")
+                jsonBuilder.append("\"weathericon$index\": \"${weatherData.weatherIcon}\",\n")
+                jsonBuilder.append("\"temperature$index\": \"${weatherData.temperature}\"")
 
-            json = """{
-                    "city": "${weatherInfo.city}",
-                    "date0": "${convertDateToString(weatherData0.date, "yyyy/MM/dd")}",
-                    "weather0": "${weatherData0.weather}",
-                    "weathericon0": "${weatherData0.weatherIcon}",
-                    "temperature0": "${weatherData0.temperature}",
-                    "date1": "${convertDateToString(weatherData1.date, "yyyy/MM/dd")}",
-                    "weather1": "${weatherData1.weather}",
-                    "weathericon1": "${weatherData1.weatherIcon}",
-                    "temperature1": "${weatherData1.temperature}",
-                    "date2": "${convertDateToString(weatherData2.date, "yyyy/MM/dd")}",
-                    "weather2": "${weatherData2.weather}",
-                    "weathericon2": "${weatherData2.weatherIcon}",
-                    "temperature2": "${weatherData2.temperature}",
-                    "date3": "${convertDateToString(weatherData3.date, "yyyy/MM/dd")}",
-                    "weather3": "${weatherData3.weather}",
-                    "weathericon3": "${weatherData3.weatherIcon}",
-                    "temperature3": "${weatherData3.temperature}",
-                    "date4": "${convertDateToString(weatherData4.date, "yyyy/MM/dd")}",
-                    "weather4": "${weatherData4.weather}",
-                    "weathericon4": "${weatherData4.weatherIcon}",
-                    "temperature4": "${weatherData4.temperature}"
-                   }"""
+                // 最後の要素以外はカンマと改行を追加
+                if (index < weatherInfo.weatherDataList.size - 1) {
+                    jsonBuilder.append(",\n")
+                }
+            }
 
+            jsonBuilder.append("\n}")
+
+            val json = jsonBuilder.toString()
             return json
         }
 
@@ -214,7 +206,7 @@ class Common {
          * @param savedJson 保存されたJSON文字列
          * @return 復元された天気情報クラス、取得できない場合はnull
          */
-        fun getSaveWeather(savedJson: String): WeatherInfo? {
+        private fun getSaveWeather(savedJson: String): WeatherInfo? {
 
             if (savedJson.isNotEmpty()) {
                 val weatherDataList: MutableList<WeatherData> = mutableListOf()
@@ -309,16 +301,12 @@ class Common {
                 if (response != null) {
                     // JSONデータから天気データを抽出
                     val weatherData = extractWeatherDataFromJSON(response)
-
                     // 天気情報クラスを作成して返す
-                    weatherInfo = WeatherInfo(city, weatherData)
-                }
-                // 天気情報を取得できなかった場合はアプリへ保存した5日間の天気予報を取得
-                if (weatherInfo == null) {
-                    weatherInfo = getSaveWeather(savedJson)
+                    return WeatherInfo(city, weatherData)
                 }
 
-                return weatherInfo
+                // 天気情報を取得できなかった場合はアプリへ保存した5日間の天気予報を取得
+                return getSaveWeather(savedJson)
             } catch (e: Exception) {
                 println(e.message)
             }
@@ -343,20 +331,25 @@ class Common {
                 val responseCode = connection.responseCode
 
                 return if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val reader = BufferedReader(InputStreamReader(connection.inputStream))
-                    var line: String?
-                    val response = StringBuilder()
-                    // レスポンスデータをまとめて取得
-                    while (reader.readLine().also { line = it } != null) {
-                        response.append(line)
-                    }
-                    reader.close()
-
-                    response.toString()
+                    connection.inputStream.bufferedReader().use { it.readText() }
                 } else {
-                    // レスポンスコードが異常な場合はnullを返す
                     null
                 }
+//                return if (responseCode == HttpURLConnection.HTTP_OK) {
+//                    val reader = BufferedReader(InputStreamReader(connection.inputStream))
+//                    var line: String?
+//                    val response = StringBuilder()
+//                    // レスポンスデータをまとめて取得
+//                    while (reader.readLine().also { line = it } != null) {
+//                        response.append(line)
+//                    }
+//                    reader.close()
+//
+//                    response.toString()
+//                } else {
+//                    // レスポンスコードが異常な場合はnullを返す
+//                    null
+//                }
             } catch (e: Exception) {
                 println(e.message)
                 // 例外が発生した場合はnull
@@ -481,16 +474,15 @@ class Common {
         //endregion
 
         //region 現在位置取得処理
-
         /**
          * 位置情報の権限を許可する
-         * @param activity 呼び出し元のActivityコンテキスト
+         * @param context 呼び出し元のActivityコンテキスト
          */
-        fun checkAndRequestLocationPermission(activity: Activity) {
+        fun checkAndRequestLocationPermission(context: Activity) {
             // 位置情報の権限が許可されているか確認
-            if (!checkLocationPermission(activity)) {
+            if (!checkLocationPermission(context)) {
                 // 許可されていない場合は権限のリクエストを行う
-                requestLocationPermission(activity)
+                requestLocationPermission(context)
             }
         }
 
@@ -618,9 +610,8 @@ class Common {
          */
         fun getDayOfWeekDisplayName(date: Date, textStyle: TextStyle = TextStyle.FULL): String {
             // 年月日から曜日を取得
-            val dayOfWeek = getDayOfWeek(date)
-            // TextStyleによって「月」「月曜日」
-            return dayOfWeek.getDisplayName(textStyle, Locale.getDefault())
+            // TextStyleによって「月」「月曜日」など表示を変更
+            return getDayOfWeek(date).getDisplayName(textStyle, Locale.getDefault())
         }
 
         /**
@@ -646,6 +637,7 @@ class Common {
         }
         //endregion
     }
+    //endregion
 }
 //endregion
 
