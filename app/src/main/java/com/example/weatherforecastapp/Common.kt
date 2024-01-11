@@ -335,21 +335,6 @@ class Common {
                 } else {
                     null
                 }
-//                return if (responseCode == HttpURLConnection.HTTP_OK) {
-//                    val reader = BufferedReader(InputStreamReader(connection.inputStream))
-//                    var line: String?
-//                    val response = StringBuilder()
-//                    // レスポンスデータをまとめて取得
-//                    while (reader.readLine().also { line = it } != null) {
-//                        response.append(line)
-//                    }
-//                    reader.close()
-//
-//                    response.toString()
-//                } else {
-//                    // レスポンスコードが異常な場合はnullを返す
-//                    null
-//                }
             } catch (e: Exception) {
                 println(e.message)
                 // 例外が発生した場合はnull
