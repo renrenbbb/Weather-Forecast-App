@@ -112,9 +112,9 @@ class MainActivity : ComponentActivity(), DateChangeListener {
      * @return データファイルのJSON文字列
      */
     fun getPrefs(selectedCity: String): String {
-        // SharedPreferencesの取得
         val sharedPreferences =
             getSharedPreferences(WEATHER_FORECAST_APP_PREF, Context.MODE_PRIVATE)
+        // 都市を指定して取得
         return sharedPreferences.getString(selectedCity, "")!!
     }
 
@@ -122,7 +122,6 @@ class MainActivity : ComponentActivity(), DateChangeListener {
      * 5日間の天気予報情報をクリア
      */
     private fun clearPrefs() {
-        // SharedPreferencesの取得
         val sharedPreferences =
             getSharedPreferences(WEATHER_FORECAST_APP_PREF, Context.MODE_PRIVATE)
         // 内容をクリア
