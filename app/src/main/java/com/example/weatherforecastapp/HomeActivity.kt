@@ -43,7 +43,7 @@ class HomeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // 位置情報の権限が許可されていない場合はユーザーに許可を求める
-        Common.checkAndRequestLocationPermission(this)
+        Location.checkAndRequestLocationPermission(this)
 
         // ViewModelでデータをロード
         viewModel.loadData()

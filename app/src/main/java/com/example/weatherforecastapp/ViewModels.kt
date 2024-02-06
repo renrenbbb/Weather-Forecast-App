@@ -90,7 +90,7 @@ class MainViewModel(private val activity: MainActivity) : ViewModel() {
 
                 var targetCity = if (city.isNotEmpty()) city else currentCity
                 if (targetCity == activity.getString(R.string.currentlocation)) {
-                    if (Common.checkLocationPermission(activity)) {
+                    if (Location.checkLocationPermission(activity)) {
                         getCurrentCity()
                         targetCity = currentCity
                         //setVisibility(true)
@@ -98,7 +98,7 @@ class MainViewModel(private val activity: MainActivity) : ViewModel() {
                 }
 
                 var result = withContext(Dispatchers.IO) {
-                    Common.get5dayWeather(targetCity, activity.getPrefs(targetCity))
+                    Weather.get5dayWeather(targetCity, activity.getPrefs(targetCity))
                 }
 
                 _weatherInfo.value = result
@@ -123,12 +123,12 @@ class MainViewModel(private val activity: MainActivity) : ViewModel() {
 
         viewModelScope.launch {
             val locationInfo = withContext(Dispatchers.IO) {
-                Common.requestLocation(activity)
+                Location.requestLocation(activity)
             }
 
             // 現在位置の都市へセット
             currentCity = withContext(Dispatchers.IO) {
-                Common.getCityFromLocation(
+                Location.getCityFromLocation(
                     locationInfo.latitude,
                     locationInfo.longitude,
                     activity

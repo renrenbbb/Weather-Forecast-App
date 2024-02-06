@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity(), DateChangeListener {
         super.onCreate(savedInstanceState)
 
         // 権限チェック
-        if (Common.checkLocationPermission(this)) {
+        if (Location.checkLocationPermission(this)) {
             // 位置情報から都市を取得
             viewModel.getCurrentCity()
         }
@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity(), DateChangeListener {
         // SharedPreferencesの取得
         val sharedPreferences =
             getSharedPreferences(WEATHER_FORECAST_APP_PREF, Context.MODE_PRIVATE)
-        val json = Common.createJsonToSaveWeather(weatherInfo)
+        val json = Weather.createJsonToSaveWeather(weatherInfo)
         sharedPreferences.edit().putString(city, json).apply()
     }
 
@@ -290,8 +290,8 @@ fun MainDisplay(
                             fontSize = 35.sp
                         )
                         Text(
-                            text = Common.getDayOfWeekDisplayName(it.weatherDataList[0].date),
-                            color = Common.getWeekColor(it.weatherDataList[0].date),
+                            text = Location.getDayOfWeekDisplayName(it.weatherDataList[0].date),
+                            color = Location.getWeekColor(it.weatherDataList[0].date),
                             fontSize = 35.sp
                         )
                     }
@@ -304,7 +304,7 @@ fun MainDisplay(
                     ) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(Common.getWeatherIconUrl(it.weatherDataList[0].weatherIcon))
+                                .data(Weather.getWeatherIconUrl(it.weatherDataList[0].weatherIcon))
                                 .crossfade(true)
                                 .build(),
                             contentScale = ContentScale.Crop,
@@ -376,11 +376,11 @@ fun MainDisplay(
                                         textAlign = TextAlign.Center
                                     )
                                     Text(
-                                        text = Common.getDayOfWeekDisplayName(
+                                        text = Location.getDayOfWeekDisplayName(
                                             it.weatherDataList[i].date,
                                             TextStyle.SHORT
                                         ),
-                                        color = Common.getWeekColor(it.weatherDataList[i].date),
+                                        color = Location.getWeekColor(it.weatherDataList[i].date),
                                         fontSize = 15.sp,
                                         textAlign = TextAlign.Center
                                     )
@@ -395,7 +395,7 @@ fun MainDisplay(
                                     AsyncImage(
                                         model = ImageRequest.Builder(LocalContext.current)
                                             .data(
-                                                Common.getWeatherIconUrl(
+                                                Weather.getWeatherIconUrl(
                                                     it.weatherDataList[i].weatherIcon,
                                                     false
                                                 )
