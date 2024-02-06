@@ -8,11 +8,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.URL
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.GET
+import retrofit2.http.Query
 import java.nio.charset.Charset
 import java.time.DayOfWeek
 import java.time.ZoneId
@@ -25,6 +28,38 @@ import kotlin.coroutines.resume
  * 位置情報クラス
  */
 class Location {
+
+    //region インターフェース
+    /**
+     * Geocoding API用のインターフェース
+     */
+    interface GeocodingApiService {
+        @GET("maps/api/geocode/json")
+        suspend fun getAddressFromCoordinates(
+            @Query("latlng") latlng: String,
+            @Query("key") apiKey: String
+        ): GeocodingResponse
+    }
+    //endregion
+
+    //region データクラス
+    //region Geocoding API用データクラス
+    data class GeocodingResponse(
+        @SerializedName("status") val status: String,
+        @SerializedName("results") val results: List<GeocodingResult>
+    )
+
+    data class GeocodingResult(
+        @SerializedName("address_components") val addressComponents: List<AddressComponent>
+    )
+
+    data class AddressComponent(
+        @SerializedName("long_name") val longName: String,
+        @SerializedName("types") val types: List<String>
+    )
+    //endregion
+    //endregion
+
     //region 静的メンバー
     companion object {
         /**
@@ -110,28 +145,33 @@ class Location {
          * @param context 呼び出し元のActivityコンテキスト
          * @return 座標から取得した都市名、取得できない場合は「不明」
          */
-        fun getCityFromLocation(latitude: Double, longitude: Double, context: Activity): String {
-            // GoogleMapsGeocodingAPIのURLをセット
-            val geocodingApiUrl =
-                "https://maps.googleapis.com/maps/api/geocode/json?latlng=$latitude,$longitude&key=$GOOGLEMAPS_API_KEY"
+        suspend fun getCityFromLocation(
+            latitude: Double,
+            longitude: Double,
+            context: Activity
+        ): String {
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://maps.googleapis.com/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+
+            val geocodingApiService = retrofit.create(GeocodingApiService::class.java)
+            val latlng = "$latitude,$longitude"
 
             try {
                 // APIへのリクエストを実行
-                val response = URL(geocodingApiUrl).readText()
-                val jsonObject = JSONObject(response)
-
-                if (jsonObject.getString("status") == "OK") {
-                    val results = jsonObject.getJSONArray("results")
-                    if (results.length() > 0) {
-                        val addressComponents =
-                            results.getJSONObject(0).getJSONArray("address_components")
-                        for (i in 0 until addressComponents.length()) {
-                            val component = addressComponents.getJSONObject(i)
-                            val types = component.getJSONArray("types")
+                val response =
+                    geocodingApiService.getAddressFromCoordinates(latlng, GOOGLEMAPS_API_KEY)
+                if (response.status == "OK") {
+                    val results = response.results
+                    if (results.isNotEmpty()) {
+                        val addressComponents = results[0].addressComponents
+                        for (component in addressComponents) {
+                            val types = component.types
                             // 都市情報が含まれる場合
-                            if (types.toString().contains("administrative_area_level_1")) {
+                            if (types.contains("administrative_area_level_1")) {
                                 // 都市名を返す
-                                return convertToShiftJIS(component.getString("long_name"))
+                                return convertToShiftJIS(component.longName)
                             }
                         }
                     }
@@ -190,4 +230,5 @@ class Location {
         }
         //endregion
     }
+    //endregion
 }
