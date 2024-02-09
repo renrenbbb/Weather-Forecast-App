@@ -104,7 +104,7 @@ class Location {
          * @return 位置情報が取得できた場合は座標クラス、取得できなかった場合は東京の座標を返す
          */
         suspend fun requestLocation(context: Activity): Coordinate =
-            withContext(Dispatchers.Default) {
+            withContext(Dispatchers.IO) {
                 try {
                     // FusedLocationProviderClientの初期化
                     val fusedLocationClient =
@@ -151,7 +151,7 @@ class Location {
             context: Activity
         ): String {
             val retrofit = Retrofit.Builder()
-                .baseUrl("https://maps.googleapis.com/")
+                .baseUrl(GOOGLEMAPS_BASEURL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
 

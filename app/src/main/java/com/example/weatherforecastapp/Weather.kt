@@ -1,16 +1,59 @@
 package com.example.weatherforecastapp
 
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
+import retrofit2.Call
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.GET
+import retrofit2.http.Query
 import java.util.Date
 
 /**
  * 天気情報クラス
  */
 class Weather {
+
+    //region インターフェース
+    /**
+     * Weather API用のインターフェース
+     */
+    interface WeatherApiService {
+        @GET("forecast")
+        fun get5dayWeather(
+            @Query("q") city: String,
+            @Query("APPID") apiKey: String,
+            @Query("units") units: String = "metric",
+            @Query("lang") lang: String = "ja"
+        ): Call<WeatherResponse>
+    }
+    //endregion
+
+    //region データクラス
+    //region Weather API用データクラス
+    data class WeatherResponse(
+        @SerializedName("list") val list: List<Forecast>
+    )
+
+    data class Forecast(
+        @SerializedName("dt") val dt: Long,
+        @SerializedName("main") val main: Main,
+        @SerializedName("weather") val weather: List<Weather>
+    )
+
+    data class Main(
+        @SerializedName("temp") val temp: Double
+    )
+
+    data class Weather(
+        @SerializedName("main") val main: String,
+        @SerializedName("icon") val icon: String
+    )
+    //endregion
+    //endregion
+
     //region 静的メンバー
     companion object {
 
@@ -108,19 +151,14 @@ class Weather {
          * @return APIから取得した天気データクラス
          */
         suspend fun get5dayWeather(city: String, savedJson: String): WeatherInfo? {
-            // OpenWeatherAPIのURLをセット
-            val apiUrl =
-                "http://api.openweathermap.org/data/2.5/forecast?q=$city&APPID=$OPENWEATHER_API_KEY&units=metric&lang=ja"
 
             try {
                 // 天気取得API処理の実行
-                val response = withContext(Dispatchers.IO) { exeGet5dayWeather(apiUrl) }
+                val weatherResponse = withContext(Dispatchers.IO) { exeGet5dayWeather(city) }
 
-                var weatherInfo: WeatherInfo? = null
-
-                if (response != null) {
+                if (weatherResponse != null) {
                     // JSONデータから天気データを抽出
-                    val weatherData = extractWeatherDataFromJSON(response)
+                    val weatherData = extractWeatherDataFromJSON(weatherResponse)
                     // 天気情報クラスを作成して返す
                     return WeatherInfo(city, weatherData)
                 }
@@ -136,30 +174,26 @@ class Weather {
 
         /**
          * 天気取得API処理の実行
-         * @param apiUrl OpenWeatherAPIのURL
+         * @param city 天気を取得する都市
          * @return APIから取得したJSON形式の天気情報
          */
-        private fun exeGet5dayWeather(apiUrl: String): String? {
-            // OpenWeatherAPIのURLをセット
-            val url = URL(apiUrl)
-            val connection = url.openConnection() as HttpURLConnection
+        private fun exeGet5dayWeather(city: String): WeatherResponse? {
+            val retrofit = Retrofit.Builder()
+                .baseUrl(OPENWEATHER_BASEURL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
 
-            connection.requestMethod = "GET"
+            val weatherApiService = retrofit.create(WeatherApiService::class.java)
 
             try {
-                // APIへのリクエストを実行
-                val responseCode = connection.responseCode
-
-                return if (responseCode == HttpURLConnection.HTTP_OK) {
-                    connection.inputStream.bufferedReader().use { it.readText() }
-                } else {
-                    null
+                val response = weatherApiService.get5dayWeather(city, OPENWEATHER_API_KEY).execute()
+                if (response.isSuccessful) {
+                    return response.body()
                 }
             } catch (e: Exception) {
                 println(e.message)
-                // 例外が発生した場合はnull
-                return null
             }
+            return null
         }
 
         /**
@@ -168,29 +202,25 @@ class Weather {
          * @return 抽出した天気データのリスト
          */
         private fun extractWeatherDataFromJSON(
-            response: String
+            weatherResponse: WeatherResponse
         ): MutableList<WeatherData> {
-            val jsonObject = JSONObject(response)
-            val listArray = jsonObject.getJSONArray("list")
+            val listArray = weatherResponse.list
 
             // 日付ごとの気温と天気を格納するMap
             val dateMap: MutableMap<String, TotalWeatherData> = mutableMapOf()
             val dateList: MutableList<Date> = mutableListOf()
 
-            for (i in 0 until listArray.length()) {
-                val listItem = listArray.getJSONObject(i)
-                val utcTimestamp = listItem.getLong("dt")
+            for (item in listArray) {
+                val utcTimestamp = item.dt
                 // 日付はUTCからJSTへ変換
                 val jstDateTime = Common.convertUTCtoJST(utcTimestamp)
                 val date = Date.from(jstDateTime.toInstant())
                 // 気温
-                val temperature = listItem.getJSONObject("main").getDouble("temp").toInt()
+                val temperature = item.main.temp.toInt()
                 // 天気
-                val weather =
-                    listItem.getJSONArray("weather").getJSONObject(0).getString("main")
+                val weather = item.weather.firstOrNull()?.main ?: ""
                 // 天気アイコン
-                val weatherIcon =
-                    listItem.getJSONArray("weather").getJSONObject(0).getString("icon")
+                val weatherIcon = item.weather.firstOrNull()?.icon ?: ""
 
                 // 日付ごとに気温と天気を格納
                 val dateKey = date.toString().substring(0, 10)
@@ -215,13 +245,11 @@ class Weather {
                 }
             }
 
-            // 日付ごとに平均気温と平均天気を計算し、リストに追加
+            /// 日付ごとに平均気温と平均天気を計算し、リストに追加
             val weatherDataList: MutableList<WeatherData> = mutableListOf()
-            var count = 0
             for ((_, value) in dateMap) {
                 // 平均気温を計算
-                val averageTemperature =
-                    value.totalTemperature / value.weatherList.size
+                val averageTemperature = value.totalTemperature / value.weatherList.size
                 // 平均天気を計算
                 val averageFrequentWeather =
                     value.weatherList.groupBy { it }
@@ -233,14 +261,12 @@ class Weather {
                 // 日付ごとに平均値を追加する
                 weatherDataList.add(
                     WeatherData(
-                        dateList[count],
+                        dateList[weatherDataList.size], // 対応する日付を取得
                         averageFrequentWeather,
                         averageFrequentWeatherIcon,
                         averageTemperature
                     )
                 )
-                // カウントアップ
-                count += 1
             }
 
             return weatherDataList
