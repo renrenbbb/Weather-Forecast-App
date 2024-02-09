@@ -27,6 +27,12 @@ val OPENWEATHER_API_KEY = Config.getOpenWeatherApiKey()
 // Google Maps APIキー
 val GOOGLEMAPS_API_KEY = Config.getGoogleMapsApiKey()
 
+// Open Weather Url
+const val OPENWEATHER_BASEURL = "http://api.openweathermap.org/data/2.5/"
+
+// Google Maps Url
+const val GOOGLEMAPS_BASEURL = "https://maps.googleapis.com/"
+
 //緯度・経度
 const val LATITUDE_TOKYO = 35.6895
 const val LONGITUDE_TOKYO = 139.6917
